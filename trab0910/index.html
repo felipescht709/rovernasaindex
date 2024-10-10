@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Aplicação da API da NASA-Rovers de Marte</title>
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+    integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
+    crossorigin="anonymous"
+  />
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100vh;
+      background-color: hsl(0, 0%, 60%);
+      color: #000;
+    }
+    h1 {
+      margin-top: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    #ulRovers li {
+      cursor: pointer;
+    }
+    .rover-info {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .rover-info p {
+      margin: 0;
+    }
+    .filter-section {
+      margin-top: 20px;
+    }
+    .filter-section label {
+      font-weight: bold;
+      color: #000;
+    }
+    .card {
+      background-color: #fff;
+      border: 1px solid #ccc;
+    }
+    .card img {
+      height: 200px;
+      object-fit: cover;
+      width: 100%;
+    }
+    footer {
+      background-color: #333;
+      color: #fff;
+      text-align: center;
+      padding: 10px 0;
+      width: 100%;
+      margin-top: auto;
+    }
+    .log-item {
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .log-item button {
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body onload="inicio()">
+  <main class="container flex-grow-1">
+    <h1>Rovers de Marte</h1>
+    <div class="row">
+      <nav class="col-lg-3">
+        <ul class="list-group" id="ulRovers"></ul>
+        <div class="my-4 filter-section">
+          <label for="dataInicial">Data inicial:</label>
+          <input type="date" id="dataInicial" class="form-control" />
+          <label for="dataFinal" class="mt-3">Data final:</label>
+          <input type="date" id="dataFinal" class="form-control" />
+          <label for="cameraFiltro" class="mt-3">Câmera:</label>
+          <select id="cameraFiltro" class="form-select">
+            <option value="">Todas as câmeras</option>
+          </select>
+          <button class="btn btn-primary mt-3" onclick="buscarFotos()">Buscar Fotos</button>
+        </div>
+        <button class="btn btn-secondary" onclick="exibirLogs()">Ver Logs</button>
+      </nav>
+      <section class="col-lg-9">
+        <div class="row" id="divCards"></div>
+      </section>
+    </div>
+    <div class="row mt-4" id="divFotos"></div>
+
+    <div class="modal fade" id="modalLogs" tabindex="-1" aria-labelledby="modalLogsLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="modalLogsLabel">Logs Registrados</h5>
+          </div>
+          <div class="modal-body" id="logsContainer"></div>
+          <div class="modal-footer">
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <h2>Felipe Schmidt, desenvolvimento web</h2>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
+  <script>
+    var roverSelecionado = null;
+    const matricula = '358798'; 
+    function inicio() {
+      carregarRovers();
+    }
+
+    async function carregarRovers() {
+      var url = `https://api.nasa.gov/mars-photos/api/v1/rovers?api_key=psEQv1bfwp5Yqm2ocewZF0ZMAhcPiSiT2LnycJAu`;
+      var resp = await fetch(url).then((resposta) => resposta.json());
+      console.log(resp);
+
+      var li = "";
+      for (var i = 0; i < resp.rovers.length; i++) {
+        li += `<li class="list-group-item">
+                  <a href="#" onclick="carregarDetalhesRover('${resp.rovers[i].name}')">${resp.rovers[i].name}</a>
+               </li>`;
+      }
+      document.getElementById("ulRovers").innerHTML = li;
+    }
+
+    async function carregarDetalhesRover(nomeRover) {
+      var url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${nomeRover}?api_key=psEQv1bfwp5Yqm2ocewZF0ZMAhcPiSiT2LnycJAu`;
+      var resp = await fetch(url).then((resposta) => resposta.json());
+      console.log(resp);
+
+      var rover = resp.rover;
+      roverSelecionado = nomeRover;
+
+      var card = `
+        <div class="col-lg-12">
+          <div class="card mb-3">
+            <div class="card-body">
+              <h5 class="card-title">${rover.name}</h5>
+              <div class="rover-info">
+                <p><strong>Status:</strong> ${rover.status}</p>
+                <p><strong>Última Foto:</strong> ${rover.max_date}</p>
+              </div>
+              <p><strong>Aterrissagem:</strong> ${rover.landing_date} | <strong>Lançamento:</strong> ${rover.launch_date}</p>
+              <p><strong>Total de Fotos:</strong> ${rover.total_photos} | <strong>Último Sol:</strong> ${rover.max_sol}</p>
+            </div>
+          </div>
+        </div>`;
+      document.getElementById("divCards").innerHTML = card;
+
+      carregarCameras(rover.cameras);
+
+      await registrarLog('NASA-Rovers', 'carregarDetalhesRover', rover.name);
+    }
+
+    function carregarCameras(cameras) {
+      var cameraOptions = cameras.map(camera => `<option value="${camera.name}">${camera.full_name}</option>`).join("");
+      document.getElementById("cameraFiltro").innerHTML += cameraOptions;
+    }
+
+    async function buscarFotos() {
+      var dataInicial = document.getElementById("dataInicial").value;
+      var dataFinal = document.getElementById("dataFinal").value;
+      var camera = document.getElementById("cameraFiltro").value;
+
+      if (!dataInicial || !dataFinal) {
+        alert("Por favor, selecione um intervalo de datas.");
+        return;
+      }
+
+      if (!roverSelecionado) {
+        alert("Por favor, selecione um rover.");
+        return;
+      }
+
+      if (new Date(dataInicial) > new Date(dataFinal)) {
+        alert("A data inicial deve ser anterior à data final.");
+        return;
+      }
+
+      var url = `https://api.nasa.gov/mars-photos/api/v1/rovers/${roverSelecionado}/photos?earth_date=${dataInicial}&api_key=psEQv1bfwp5Yqm2ocewZF0ZMAhcPiSiT2LnycJAu`;
+      if (camera) {
+        url += `&camera=${camera}`;
+      }
+
+      var resp = await fetch(url).then((resposta) => resposta.json());
+      console.log(resp);
+
+      await registrarLog('NASA-Rovers', 'buscarFotos', `Rover: ${roverSelecionado}, Data Inicial: ${dataInicial}, Data Final: ${dataFinal}`);
+      exibirFotos(resp.photos);
+    }
+
+    function exibirFotos(photos) {
+      var divFotos = document.getElementById("divFotos");
+      divFotos.innerHTML = "";
+
+      if (photos.length === 0) {
+        divFotos.innerHTML = "<p>Nenhuma foto encontrada para as datas selecionadas.</p>";
+        return;
+      }
+
+      photos.forEach(photo => {
+        var card = `
+          <div class="col-lg-4">
+            <div class="card mb-3">
+              <img src="${photo.img_src}" class="card-img-top" alt="Foto do Rover" />
+              <div class="card-body">
+                <h5 class="card-title">${photo.camera.full_name}</h5>
+                <p><strong>Data:</strong> ${photo.earth_date}</p>
+              </div>
+            </div>
+          </div>`;
+        divFotos.innerHTML += card;
+      });
+    }
+
+    var logs = [];
+
+    async function registrarLog(sistema, acao, detalhes) {
+      const logEntry = {
+        data: new Date().toLocaleString(),
+        sistema: sistema,
+        acao: acao,
+        detalhes: detalhes
+      };
+      logs.push(logEntry);
+      console.log(logs);
+    }
+
+    function exibirLogs() {
+      var logsContainer = document.getElementById("logsContainer");
+      logsContainer.innerHTML = logs.map((log, index) => `
+        <div class="log-item">
+          <p><strong>Data:</strong> ${log.data} | <strong>Sistema:</strong> ${log.sistema} | <strong>Ação:</strong> ${log.acao} | <strong>Detalhes:</strong> ${log.detalhes}</p>
+          <button class="btn btn-danger btn-sm" onclick="removerLog(${index})">Excluir</button>
+        </div>
+      `).join("");
+
+      var modalLogs = new bootstrap.Modal(document.getElementById('modalLogs'));
+      modalLogs.show();
+    }
+
+    function removerLog(index) {
+      logs.splice(index, 1);
+      exibirLogs(); 
+    }
+  </script>
+</body>
+</html>
